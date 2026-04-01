@@ -32,9 +32,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-white text-[#1d1d1f] selection:bg-[#0071e3] selection:text-white">
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
-      <Analytics />
-      <SpeedInsights />
     </html>
   );
 }
