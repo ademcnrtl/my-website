@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-export type ThoughtType = 'note' | 'video' | 'code' | 'music'
+export type ThoughtType = 'note' | 'video' | 'code'
 
 export interface Thought {
   id: string
