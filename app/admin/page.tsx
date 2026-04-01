@@ -222,7 +222,6 @@ export default function AdminDashboard() {
 
         {activeTab === "thoughts" && (
           <div className="grid md:grid-cols-2 gap-8 items-start">
-            {/* Thoughts Formu */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
               <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-6">New thought</h2>
               <form onSubmit={handleThoughtSubmit} className="space-y-4">
