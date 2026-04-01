@@ -46,13 +46,13 @@ The production environment is actively maintained and can be experienced at:
 
 To bring this architecture to life on your local machine, execute the following sequence precisely.
 
-1. **Clone the Repository**
+**Clone the Repository**
 
-   Pull the source code to your local drive.
+Pull the source code to your local drive.
 
-   ```bash
-   git clone https://github.com/ademcnrtl/my-website.git
-   cd my-website
-   npm install
-   npm run dev
-   ```
+```bash
+git clone https://github.com/ademcnrtl/my-website.git
+cd my-website
+npm install
+npm run dev
+```
