@@ -13,7 +13,7 @@ import {
 
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "changeme";
 
-const TYPE_OPTIONS: ThoughtType[] = ["note", "video", "code", "music"];
+const TYPE_OPTIONS: ThoughtType[] = ["note", "video", "code"];
 
 const LANGUAGE_OPTIONS = [
   "typescript", "javascript", "python", "rust", "swift",
@@ -250,12 +250,12 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {(thoughtForm.type === "video" || thoughtForm.type === "music" || thoughtForm.type === "note") && (
+                {(thoughtForm.type === "video" || thoughtForm.type === "note") && (
                   <div>
                     <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">
-                      {thoughtForm.type === "video" ? "YouTube URL" : thoughtForm.type === "music" ? "Spotify / SoundCloud URL" : "Link (Twitter, Haber vb.)"}
+                      {thoughtForm.type === "video" ? "YouTube URL" : "Link (Twitter, Haber vb.)"}
                     </label>
-                    <input type="url" value={thoughtForm.url} onChange={(e) => setThoughtForm((f) => ({ ...f, url: e.target.value }))} placeholder={thoughtForm.type === "video" ? "https://youtube.com/watch?v=..." : thoughtForm.type === "music" ? "http://googleusercontent.com/spotify.com/..." : "https://x.com/..."} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors" />
+                    <input type="url" value={thoughtForm.url} onChange={(e) => setThoughtForm((f) => ({ ...f, url: e.target.value }))} placeholder={thoughtForm.type === "video" ? "https://youtube.com/watch?v=..." : "https://x.com/..."} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors" />
                   </div>
                 )}
 
@@ -268,7 +268,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {(thoughtForm.type === "video" || thoughtForm.type === "music") && (
+                {thoughtForm.type === "video" && (
                   <div>
                     <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide mt-4">Note (optional)</label>
                     <textarea value={thoughtForm.body} onChange={(e) => setThoughtForm((f) => ({ ...f, body: e.target.value }))} placeholder="Say something about it..." rows={3} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors resize-none" />
