@@ -1,39 +1,33 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Analytics } from "@vercel/analytics/next"
+import { Inter, Lora } from 'next/font/google';
+import './globals.css';
 
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const inter = Inter({ 
+  subsets: ['latin'], 
+  variable: '--font-sans',
+  display: 'swap',
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const lora = Lora({ 
+  subsets: ['latin'], 
+  variable: '--font-serif',
+  display: 'swap',
+  style: ['normal', 'italic'],
 });
 
-export const metadata: Metadata = {
-  title: "Adem Can Certel",
-  description: "Developer, designer, and photographer. Making the complex feel simple.",
+export const metadata = {
+  title: 'Adem Can Certel',
+  description: 'Making the complex feel simple.',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-white text-[#1d1d1f] selection:bg-[#0071e3] selection:text-white">
+    <html lang="en" className={`${inter.variable} ${lora.variable}`}>
+      <body className="font-sans bg-white text-[#1d1d1f] antialiased selection:bg-[#0071e3] selection:text-white">
         {children}
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );
