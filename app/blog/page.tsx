@@ -35,7 +35,7 @@ export default async function Blog({ searchParams }: Props) {
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-[11px] tracking-widest text-[#b0b0b5] uppercase">
-              Archive {count}
+              Archive {count || 0}
             </span>
           </div>
         </div>
@@ -52,34 +52,40 @@ export default async function Blog({ searchParams }: Props) {
 
       <section className="max-w-2xl mx-auto px-6 pb-20">
         <div className="flex flex-col border-t border-[#f5f5f7]">
-          {posts?.map((post) => (
-            <article key={post.slug} className="group border-b border-[#f5f5f7] py-10 md:py-12">
-              <div className="flex flex-col">
-
-                <Link href={`/blog/${post.slug}`} className="inline-block w-fit">
-                  <h2 className="text-[22px] md:text-[26px] font-semibold text-[#1d1d1f] mb-3 hover:text-[#0071e3] transition-colors tracking-tight leading-tight cursor-pointer">
-                    {post.title}
-                  </h2>
-                </Link>
-
-                <p className="text-[16px] md:text-[17px] text-[#6e6e73] leading-relaxed font-light mb-5 select-none">
-                  {post.excerpt}
-                </p>
-
-                <div className="flex items-center gap-3 text-[12px] text-[#b0b0b5] font-medium tracking-wide select-none">
-                  <time>
-                    {new Date(post.created_at).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric"
-                    })}
-                  </time>
-                  <span className="w-1 h-1 rounded-full bg-[#d2d2d7]"></span>
-                  <span>{post.read_time} min read</span>
+          {/* YAZI VARSA LİSTELE */}
+          {posts && posts.length > 0 ? (
+            posts.map((post) => (
+              <article key={post.slug} className="group border-b border-[#f5f5f7] py-10 md:py-12">
+                <div className="flex flex-col">
+                  <Link href={`/blog/${post.slug}`} className="inline-block w-fit">
+                    <h2 className="text-[22px] md:text-[26px] font-semibold text-[#1d1d1f] mb-3 hover:text-[#0071e3] transition-colors tracking-tight leading-tight cursor-pointer">
+                      {post.title}
+                    </h2>
+                  </Link>
+                  <p className="text-[16px] md:text-[17px] text-[#6e6e73] leading-relaxed font-light mb-5 select-none">
+                    {post.excerpt}
+                  </p>
+                  <div className="flex items-center gap-3 text-[12px] text-[#b0b0b5] font-medium tracking-wide select-none">
+                    <time>
+                      {new Date(post.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric"
+                      })}
+                    </time>
+                    <span className="w-1 h-1 rounded-full bg-[#d2d2d7]"></span>
+                    <span>{post.read_time} min read</span>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          ) : (
+            <div className="py-24 text-center">
+              <p className="text-[17px] text-[#1d1d1f] font-medium mb-1">
+                The archive is currently silent.
+              </p>
+            </div>
+          )}
         </div>
 
         {totalPages > 1 && (
