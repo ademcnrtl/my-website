@@ -30,7 +30,16 @@ const EMPTY_THOUGHT_FORM = {
   published: true,
 };
 
-type AdminTab = "thoughts" | "photos";
+const EMPTY_BLOG_FORM = {
+  title: "",
+  slug: "",
+  excerpt: "",
+  content: "",
+  read_time: 3,
+  published: true,
+};
+
+type AdminTab = "thoughts" | "photos" | "blog";
 type PhotoCategory = "Space" | "Nature" | "Gaming";
 
 export default function AdminDashboard() {
@@ -40,12 +49,21 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState<AdminTab>("thoughts");
 
+  // --- THOUGHTS STATE ---
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [loadingThoughts, setLoadingThoughts] = useState(false);
   const [thoughtForm, setThoughtForm] = useState(EMPTY_THOUGHT_FORM);
   const [savingThought, setSavingThought] = useState(false);
   const [thoughtSuccess, setThoughtSuccess] = useState(false);
 
+  // --- BLOG STATE ---
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [loadingBlogs, setLoadingBlogs] = useState(false);
+  const [blogForm, setBlogForm] = useState(EMPTY_BLOG_FORM);
+  const [savingBlog, setSavingBlog] = useState(false);
+  const [blogSuccess, setBlogSuccess] = useState(false);
+
+  // --- PHOTOS STATE ---
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoTitle, setPhotoTitle] = useState("");
   const [photoCategory, setPhotoCategory] = useState<PhotoCategory>("Space");
@@ -58,18 +76,20 @@ export default function AdminDashboard() {
     if (pw === ADMIN_PASSWORD) {
       setAuthed(true);
       loadThoughts();
+      loadBlogs();
     } else {
       setPwError(true);
     }
   }
 
+  // --- THOUGHTS LOGIC ---
   async function loadThoughts() {
     setLoadingThoughts(true);
     try {
       const data = await getThoughts();
       setThoughts(data);
     } catch (error) {
-      console.error("Datalar yüklenirken hata oluştu:", error);
+      console.error("Düşünceler yüklenirken hata:", error);
     } finally {
       setLoadingThoughts(false);
     }
@@ -93,7 +113,7 @@ export default function AdminDashboard() {
       setTimeout(() => setThoughtSuccess(false), 2000);
       loadThoughts();
     } catch (error: any) {
-      alert("Gönderim başarısız oldu! Supabase hatası: " + (error?.message || JSON.stringify(error)));
+      alert("Gönderim başarısız! Hata: " + (error?.message || JSON.stringify(error)));
     } finally {
       setSavingThought(false);
     }
@@ -105,7 +125,7 @@ export default function AdminDashboard() {
       await deleteThought(id);
       loadThoughts();
     } catch (error: any) {
-      alert("Silme işlemi başarısız: " + (error?.message || "Bilinmeyen hata"));
+      alert("Silme başarısız: " + (error?.message || "Bilinmeyen hata"));
     }
   }
 
@@ -114,10 +134,86 @@ export default function AdminDashboard() {
       await togglePublished(id, !current);
       loadThoughts();
     } catch (error: any) {
-      alert("Durum değiştirilemedi: " + (error?.message || "Bilinmeyen hata"));
+      alert("Durum değişmedi: " + (error?.message || "Bilinmeyen hata"));
     }
   }
 
+  // --- BLOG LOGIC ---
+  async function loadBlogs() {
+    setLoadingBlogs(true);
+    try {
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      setBlogPosts(data || []);
+    } catch (error) {
+      console.error("Bloglar yüklenirken hata:", error);
+    } finally {
+      setLoadingBlogs(false);
+    }
+  }
+
+  function handleBlogTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const title = e.target.value;
+    // Otomatik Slug Oluşturucu (Türkçe karakterleri ve boşlukları temizler)
+    const slug = title
+      .toLowerCase()
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ı/g, 'i')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    setBlogForm(prev => ({ ...prev, title, slug }));
+  }
+
+  async function handleBlogSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingBlog(true);
+    try {
+      const { error } = await supabase.from("blog_posts").insert([blogForm]);
+      if (error) throw error;
+      
+      setBlogForm(EMPTY_BLOG_FORM);
+      setBlogSuccess(true);
+      setTimeout(() => setBlogSuccess(false), 2000);
+      loadBlogs();
+    } catch (error: any) {
+      alert("Blog gönderilemedi: " + (error?.message || JSON.stringify(error)));
+    } finally {
+      setSavingBlog(false);
+    }
+  }
+
+  async function handleBlogRemove(id: string) {
+    if (!confirm("Bu yazıyı kalıcı olarak silmek istediğine emin misin?")) return;
+    try {
+      const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+      if (error) throw error;
+      loadBlogs();
+    } catch (error: any) {
+      alert("Silme başarısız: " + (error?.message || "Bilinmeyen hata"));
+    }
+  }
+
+  async function handleBlogToggle(id: string, current: boolean) {
+    try {
+      const { error } = await supabase.from("blog_posts").update({ published: !current }).eq("id", id);
+      if (error) throw error;
+      loadBlogs();
+    } catch (error: any) {
+      alert("Durum değişmedi: " + (error?.message || "Bilinmeyen hata"));
+    }
+  }
+
+  // --- PHOTOS LOGIC ---
   const handlePhotoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!photoFile) return setPhotoMessage("Lütfen bir fotoğraf seçin.");
@@ -186,46 +282,39 @@ export default function AdminDashboard() {
   return (
     <main className="min-h-screen bg-[#f5f5f7]" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
       <header className="bg-white border-b border-[#d2d2d7] px-6 py-4">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <h1 className="text-[17px] font-semibold text-[#1d1d1f]">Dashboard</h1>
 
-          <div className="flex gap-1 bg-[#f5f5f7] rounded-lg p-1 border border-[#d2d2d7]/50">
-            <button
-              onClick={() => setActiveTab("thoughts")}
-              className="px-6 py-1.5 rounded-md text-[13px] transition-all duration-200"
-              style={{
-                background: activeTab === "thoughts" ? "white" : "transparent",
-                color: activeTab === "thoughts" ? "#1d1d1f" : "#6e6e73",
-                boxShadow: activeTab === "thoughts" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                fontWeight: activeTab === "thoughts" ? 500 : 400,
-              }}
-            >
-              Thoughts
-            </button>
-            <button
-              onClick={() => setActiveTab("photos")}
-              className="px-6 py-1.5 rounded-md text-[13px] transition-all duration-200"
-              style={{
-                background: activeTab === "photos" ? "white" : "transparent",
-                color: activeTab === "photos" ? "#1d1d1f" : "#6e6e73",
-                boxShadow: activeTab === "photos" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                fontWeight: activeTab === "photos" ? 500 : 400,
-              }}
-            >
-              Photography
-            </button>
+          <div className="flex gap-1 bg-[#f5f5f7] rounded-lg p-1 border border-[#d2d2d7]/50 overflow-x-auto">
+            {(["thoughts", "blog", "photos"] as AdminTab[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="px-6 py-1.5 rounded-md text-[13px] transition-all duration-200 capitalize"
+                style={{
+                  background: activeTab === tab ? "white" : "transparent",
+                  color: activeTab === tab ? "#1d1d1f" : "#6e6e73",
+                  boxShadow: activeTab === tab ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  fontWeight: activeTab === tab ? 500 : 400,
+                }}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="max-w-6xl mx-auto px-6 py-10">
 
+        {/* THOUGHTS TAB */}
         {activeTab === "thoughts" && (
           <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Form */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
               <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-6">New thought</h2>
               <form onSubmit={handleThoughtSubmit} className="space-y-4">
-
+                {/* ... (Mevcut Thoughts Form İçeriği - Aynen Korundu) ... */}
                 <div>
                   <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Type</label>
                   <div className="flex gap-1 bg-[#f5f5f7] rounded-lg p-1">
@@ -236,19 +325,16 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Title</label>
                   <input type="text" value={thoughtForm.title} onChange={(e) => setThoughtForm((f) => ({ ...f, title: e.target.value }))} placeholder="Optional title" className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors" />
                 </div>
-
                 {(thoughtForm.type === "note" || thoughtForm.type === "code") && (
                   <div>
                     <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">{thoughtForm.type === "code" ? "Code" : "Body"}</label>
                     <textarea value={thoughtForm.body} onChange={(e) => setThoughtForm((f) => ({ ...f, body: e.target.value }))} placeholder={thoughtForm.type === "code" ? "Paste your code here..." : "Write something..."} rows={thoughtForm.type === "code" ? 8 : 4} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors resize-none" style={{ fontFamily: thoughtForm.type === "code" ? "monospace" : "inherit" }} />
                   </div>
                 )}
-
                 {(thoughtForm.type === "video" || thoughtForm.type === "note") && (
                   <div>
                     <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">
@@ -257,7 +343,6 @@ export default function AdminDashboard() {
                     <input type="url" value={thoughtForm.url} onChange={(e) => setThoughtForm((f) => ({ ...f, url: e.target.value }))} placeholder={thoughtForm.type === "video" ? "https://youtube.com/watch?v=..." : "https://x.com/..."} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors" />
                   </div>
                 )}
-
                 {thoughtForm.type === "code" && (
                   <div>
                     <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Language</label>
@@ -266,37 +351,34 @@ export default function AdminDashboard() {
                     </select>
                   </div>
                 )}
-
                 {thoughtForm.type === "video" && (
                   <div>
                     <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide mt-4">Note (optional)</label>
                     <textarea value={thoughtForm.body} onChange={(e) => setThoughtForm((f) => ({ ...f, body: e.target.value }))} placeholder="Say something about it..." rows={3} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors resize-none" />
                   </div>
                 )}
-
                 <div>
                   <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Tags</label>
                   <input type="text" value={thoughtForm.tags} onChange={(e) => setThoughtForm((f) => ({ ...f, tags: e.target.value }))} placeholder="games, code, clip (comma separated)" className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors" />
                 </div>
-
                 <div className="flex items-center gap-3">
-                  <input type="checkbox" id="published" checked={thoughtForm.published} onChange={(e) => setThoughtForm((f) => ({ ...f, published: e.target.checked }))} className="w-4 h-4 rounded accent-[#0071e3]" />
-                  <label htmlFor="published" className="text-[14px] text-[#1d1d1f]">Publish immediately</label>
+                  <input type="checkbox" id="published-thought" checked={thoughtForm.published} onChange={(e) => setThoughtForm((f) => ({ ...f, published: e.target.checked }))} className="w-4 h-4 rounded accent-[#0071e3]" />
+                  <label htmlFor="published-thought" className="text-[14px] text-[#1d1d1f]">Publish immediately</label>
                 </div>
-
                 <button type="submit" disabled={savingThought} className="w-full bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-50 text-white text-[15px] font-medium py-2.5 rounded-lg transition-colors">
                   {savingThought ? "Saving..." : thoughtSuccess ? "Saved ✓" : "Add thought"}
                 </button>
               </form>
             </div>
 
+            {/* Liste */}
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
               <div className="px-6 py-4 border-b border-[#f5f5f7]">
                 <h2 className="text-[17px] font-semibold text-[#1d1d1f]">All thoughts</h2>
               </div>
               {loadingThoughts && <div className="px-6 py-10 text-[14px] text-[#b0b0b5] text-center">Loading...</div>}
               {!loadingThoughts && thoughts.length === 0 && <div className="px-6 py-10 text-[14px] text-[#b0b0b5] text-center">No thoughts yet.</div>}
-              <ul className="divide-y divide-[#f5f5f7]">
+              <ul className="divide-y divide-[#f5f5f7] max-h-[600px] overflow-y-auto">
                 {thoughts.map((t) => (
                   <li key={t.id} className="px-6 py-4 flex items-start justify-between gap-4 hover:bg-gray-50 transition-colors">
                     <div className="flex-1 min-w-0">
@@ -318,6 +400,80 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* BLOG TAB */}
+        {activeTab === "blog" && (
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Form */}
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+              <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-6">Write a Post</h2>
+              <form onSubmit={handleBlogSubmit} className="space-y-4">
+                
+                <div>
+                  <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Title</label>
+                  <input type="text" required value={blogForm.title} onChange={handleBlogTitleChange} placeholder="Yazının başlığı..." className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors" />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Slug (URL)</label>
+                  <input type="text" required value={blogForm.slug} onChange={(e) => setBlogForm(f => ({ ...f, slug: e.target.value }))} placeholder="ornek-yazi-url" className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#6e6e73] bg-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors font-mono" />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Excerpt (Özet)</label>
+                  <textarea required value={blogForm.excerpt} onChange={(e) => setBlogForm((f) => ({ ...f, excerpt: e.target.value }))} placeholder="Listede görünecek kısa özet..." rows={2} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors resize-none" />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Content (HTML)</label>
+                  <textarea required value={blogForm.content} onChange={(e) => setBlogForm((f) => ({ ...f, content: e.target.value }))} placeholder="<p>Yazı içeriği buraya...</p>" rows={10} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors resize-none font-mono" />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] text-[#6e6e73] mb-1.5 uppercase tracking-wide">Read Time (Mins)</label>
+                  <input type="number" min="1" required value={blogForm.read_time} onChange={(e) => setBlogForm((f) => ({ ...f, read_time: parseInt(e.target.value) || 1 }))} className="w-full border border-[#d2d2d7] rounded-lg px-3 py-2 text-[14px] text-[#1d1d1f] outline-none focus:border-[#0071e3] transition-colors max-w-[100px]" />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" id="published-blog" checked={blogForm.published} onChange={(e) => setBlogForm((f) => ({ ...f, published: e.target.checked }))} className="w-4 h-4 rounded accent-[#0071e3]" />
+                  <label htmlFor="published-blog" className="text-[14px] text-[#1d1d1f]">Publish immediately</label>
+                </div>
+
+                <button type="submit" disabled={savingBlog} className="w-full bg-[#1d1d1f] hover:bg-black disabled:opacity-50 text-white text-[15px] font-medium py-2.5 rounded-lg transition-colors">
+                  {savingBlog ? "Saving..." : blogSuccess ? "Published ✓" : "Publish Post"}
+                </button>
+              </form>
+            </div>
+
+            {/* Liste */}
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+              <div className="px-6 py-4 border-b border-[#f5f5f7]">
+                <h2 className="text-[17px] font-semibold text-[#1d1d1f]">All Posts</h2>
+              </div>
+              {loadingBlogs && <div className="px-6 py-10 text-[14px] text-[#b0b0b5] text-center">Loading...</div>}
+              {!loadingBlogs && blogPosts.length === 0 && <div className="px-6 py-10 text-[14px] text-[#b0b0b5] text-center">No posts yet.</div>}
+              <ul className="divide-y divide-[#f5f5f7] max-h-[750px] overflow-y-auto">
+                {blogPosts.map((p) => (
+                  <li key={p.id} className="px-6 py-4 flex items-start justify-between gap-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {!p.published && <span className="text-[10px] text-[#ff9f0a] font-medium px-2 py-0.5 rounded-full bg-[#ff9f0a]/10">Draft</span>}
+                      </div>
+                      <p className="text-[15px] font-medium text-[#1d1d1f] truncate">{p.title}</p>
+                      <p className="text-[12px] text-[#b0b0b5] mt-1 font-mono truncate">/{p.slug}</p>
+                      <p className="text-[12px] text-[#b0b0b5] mt-0.5">{new Date(p.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <button onClick={() => handleBlogToggle(p.id, p.published)} className="text-[12px] text-[#6e6e73] hover:text-[#0071e3] transition-colors">{p.published ? "Unpublish" : "Publish"}</button>
+                      <button onClick={() => handleBlogRemove(p.id)} className="text-[12px] text-[#ff3b30] hover:opacity-70 transition-opacity">Delete</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* PHOTOS TAB */}
         {activeTab === "photos" && (
           <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-6">Upload Photo</h2>
